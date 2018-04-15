@@ -4,6 +4,7 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -94,12 +95,20 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
 
         @Override
         public void onClick(View v) {
-            Toast.makeText(context, "" + track.isPlaying(), Toast.LENGTH_SHORT).show();
-            if (track.isPlaying()) {
-                track.setPlaying(false);
-                notifyItemChanged(getAdapterPosition());
-                new PlayMediaExec(context).startPlaying(getAdapterPosition(),false);
-            } else {
+            if(((MainActivity)context).getCurrentTrackPosition()==getAdapterPosition()){
+                Log.d("CLICKED","CURRENT POSITION = CLICK POSITION");
+                if(track.isPlaying()){
+                    track.setPlaying(false);
+                    notifyItemChanged(getAdapterPosition());
+                    new PlayMediaExec(context).startPlaying(getAdapterPosition(),false);
+                }
+                else {
+                    track.setPlaying(true);
+                    notifyItemChanged(getAdapterPosition());
+                    new PlayMediaExec(context).startPlaying(getAdapterPosition(),false);
+                }
+            }else {
+                Log.d("CLICKED","CURRENT POSITION != CLICK POSITION");
                 ((MainActivity)context).updateCurrentPosition(getAdapterPosition());
             }
         }

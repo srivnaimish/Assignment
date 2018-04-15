@@ -62,6 +62,7 @@ public class MediaService extends Service implements
     private MediaPlayerListener mediaPlayerListener;
     private Track currentTrack;
     private int playerState;
+    private int currentPosition=-10;
 
     @Override
     public void onCreate() {
@@ -141,9 +142,10 @@ public class MediaService extends Service implements
         }
     }
 
-    public void setTrack(Track track) {
+    public void setTrack(Track track,int currentPosition) {
         this.currentTrack=track;
         playerState = STOPPED;
+        this.currentPosition=currentPosition;
     }
 
     public void togglePlay() {
@@ -153,7 +155,7 @@ public class MediaService extends Service implements
                     playSong();
                     mediaPlayerListener.onStateChanged(playerState = PLAYING);
                     buildNotification(playerState);
-                    Toast.makeText(this, "NOW PLAYING FRESH", Toast.LENGTH_SHORT).show();
+                    Log.d("MEDIA STATUS","STARTED");
                 }
                 break;
             case PAUSED:
@@ -161,22 +163,22 @@ public class MediaService extends Service implements
                     mediaPlayer.start();
                     mediaPlayerListener.onStateChanged(playerState = PLAYING);
                     buildNotification(playerState);
-                    Toast.makeText(this, "RESUMED", Toast.LENGTH_SHORT).show();
+                    Log.d("MEDIA STATUS","RESUMED");
                 }
                 break;
             case PLAYING:
                 mediaPlayer.pause();
                 mediaPlayerListener.onStateChanged(playerState = PAUSED);
                 buildNotification(playerState);
-                Toast.makeText(this, "PAUSE", Toast.LENGTH_SHORT).show();
+                Log.d("MEDIA STATUS","PAUSED");
                 break;
         }
     }
     private void playSong() {
-        if (mediaPlayer.isPlaying()) {
+      //  if (mediaPlayer.isPlaying()) {
             mediaPlayer.stop();
             mediaPlayer.reset();
-        }
+        //}
         try {
             mediaPlayer.setDataSource(currentTrack.getPreviewURL());
             updateMetaData();
@@ -221,9 +223,7 @@ public class MediaService extends Service implements
                 super.onPlay();
                 togglePlay();
                 buildNotification(playerState);
-
-                //Toast.makeText(MusicService.this, ""+playerState, Toast.LENGTH_SHORT).show();
-            }
+                }
 
             @Override
             public void onPause() {
@@ -263,6 +263,10 @@ public class MediaService extends Service implements
 
     public void setMediaPlayerListener(MediaPlayerListener mediaPlayerListener) {
         this.mediaPlayerListener = mediaPlayerListener;
+    }
+
+    public int getCurrentPosition() {
+        return currentPosition;
     }
 
 
@@ -362,7 +366,10 @@ public class MediaService extends Service implements
             androidChannel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
             mManager.createNotificationChannel(androidChannel);
         }
-        mManager.notify(NOTIFICATION_ID, notificationBuilder.build());
+
+        Notification notification=notificationBuilder.build();
+        startForeground(NOTIFICATION_ID,notification);
+        //mManager.notify(NOTIFICATION_ID, notificationBuilder.build());
 
     }
 

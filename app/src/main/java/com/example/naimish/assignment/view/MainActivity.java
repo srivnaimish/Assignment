@@ -5,17 +5,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.databinding.DataBindingUtil;
+import android.os.Build;
 import android.os.IBinder;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.util.Log;
 import android.view.View;
-import android.view.animation.AnimationUtils;
-import android.widget.Toast;
 
-import com.bumptech.glide.Glide;
 import com.example.naimish.assignment.Model.Track;
 import com.example.naimish.assignment.R;
 import com.example.naimish.assignment.databinding.ActivityMainBinding;
@@ -27,8 +24,6 @@ import com.example.naimish.assignment.executor.PlayMediaExec;
 import com.example.naimish.assignment.executor.RecyclerViewAdapter;
 
 import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 
 import static com.example.naimish.assignment.Constants.AppConstants.PAUSED;
 import static com.example.naimish.assignment.Constants.AppConstants.PLAYING;
@@ -52,15 +47,28 @@ public class MainActivity extends AppCompatActivity implements APIListener, Medi
             MediaService.MusicBinder binder = (MediaService.MusicBinder) service;
             mediaService = binder.getService();
             mediaService.setMediaPlayerListener(MainActivity.this);
-            mediaService.setTrack(tracks.get(currentTrackPosition));
-            mBinding.trackName.setText(tracks.get(currentTrackPosition).getName());
-            mBinding.artistName.setText(tracks.get(currentTrackPosition).getArtistName());
+
             mBinding.playCard.setAlpha(0.f);
             mBinding.playCard.animate()
                     .alpha(1.f)
                     .setDuration(100)
                     .start();
             mBinding.playCard.setVisibility(View.VISIBLE);
+
+            if(mediaService.getCurrentPosition()==-10){ //No service in background
+                mediaService.setTrack(tracks.get(currentTrackPosition),currentTrackPosition);
+            }else {
+                currentTrackPosition=mediaService.getCurrentPosition();
+                if(mediaService.mediaPlayer.isPlaying()){
+                    mBinding.playPause.setImageResource(R.drawable.ic_pause);
+                    tracks.get(currentTrackPosition).setPlaying(true);
+                    recyclerViewAdapter.notifyItemChanged(currentTrackPosition);
+                }
+            }
+
+            mBinding.trackName.setText(tracks.get(currentTrackPosition).getName());
+            mBinding.artistName.setText(tracks.get(currentTrackPosition).getArtistName());
+
         }
 
         @Override
@@ -121,7 +129,11 @@ public class MainActivity extends AppCompatActivity implements APIListener, Medi
     public void startTheService() {
         if (playIntent == null) {
             playIntent = new Intent(this, MediaService.class);
-            startService(playIntent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(playIntent);
+            }else {
+                startService(playIntent);
+            }
             Log.d("Bound", bindService(playIntent, mediaConnection, Context.BIND_AUTO_CREATE) + "");
         }
     }
@@ -129,8 +141,10 @@ public class MainActivity extends AppCompatActivity implements APIListener, Medi
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        unbindService(mediaConnection);
-        stopService(playIntent);
+        if(!mediaService.mediaPlayer.isPlaying()){
+            unbindService(mediaConnection);
+            stopService(playIntent);
+        }
     }
 
     public void onClick(View view) {
@@ -151,7 +165,6 @@ public class MainActivity extends AppCompatActivity implements APIListener, Medi
 
     public void updateCurrentPosition(int position) {
         if (position >= 0 && position < tracks.size()) {
-            Toast.makeText(this, "Playing "+position, Toast.LENGTH_SHORT).show();
 
             tracks.get(currentTrackPosition).setPlaying(false);
             tracks.get(position).setPlaying(true);
@@ -164,7 +177,16 @@ public class MainActivity extends AppCompatActivity implements APIListener, Medi
             mBinding.trackName.setText(tracks.get(currentTrackPosition).getName());
             mBinding.artistName.setText(tracks.get(currentTrackPosition).getArtistName());
 
+        }else {
+            currentTrackPosition = 0;
+            mediaService.setTrack(tracks.get(currentTrackPosition),currentTrackPosition);
+            mBinding.trackName.setText(tracks.get(currentTrackPosition).getName());
+            mBinding.artistName.setText(tracks.get(currentTrackPosition).getArtistName());
         }
+    }
+
+    public int getCurrentTrackPosition(){
+        return currentTrackPosition;
     }
 
 }

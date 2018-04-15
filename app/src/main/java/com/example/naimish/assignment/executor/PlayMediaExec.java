@@ -15,7 +15,7 @@ public class PlayMediaExec {
     public void startPlaying(int position,boolean setNewTrack) {
         MediaService mediaService = ((MainActivity) ctx).getMediaService();
         if(setNewTrack)
-            mediaService.setTrack(((MainActivity) ctx).getTracks().get(position));
+            mediaService.setTrack(((MainActivity) ctx).getTracks().get(position),position);
         mediaService.togglePlay();
     }
 
